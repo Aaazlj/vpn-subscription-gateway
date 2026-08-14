@@ -180,7 +180,11 @@ class Handler(BaseHTTPRequestHandler):
             country = data.get("country", "")
             limit = int(data.get("limit", 3) or 3)
             if country:
-                app.select_by_country(country, limit)
+                try:
+                    app.select_by_country(country, limit)
+                except RuntimeError as e:
+                    self._json({"error": str(e)}, 400)
+                    return
             elif node_id:
                 app.toggle_select(node_id, action)
             else:

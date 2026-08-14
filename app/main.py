@@ -65,11 +65,13 @@ class App:
 
     def select_by_country(self, country: str, limit: int = 3):
         nodes = self.get_nodes()
+        if not nodes:
+            raise RuntimeError("节点池尚未就绪,请稍候重试(正在后台拉取节点)")
         candidates = [n for n in nodes
                       if n.get("country_short") == country.upper() and n.get("reachable")]
         candidates.sort(key=lambda n: n.get("latency_ms") if n.get("latency_ms") is not None else 10**9)
-        selected = config.load_selected()
-        # replace current selection with top-N
+        if not candidates:
+            raise RuntimeError("未找到该国家的可达节点: " + country)
         selected = [n["id"] for n in candidates[:limit]]
         config.save_selected(selected[:self.max_tunnels])
 
