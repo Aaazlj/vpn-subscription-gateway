@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # VPN Subscription Gateway - bare-metal installer (Debian/Ubuntu, root)
+# 用法: bash <(curl -sL https://github.com/Aaazlj/vpn-subscription-gateway/raw/main/install.sh)
 set -e
 
 if [ "$(id -u)" != "0" ]; then
@@ -9,6 +10,7 @@ fi
 
 APP_DIR=/opt/vsg
 DATA_DIR=/var/lib/vsg
+REPO_URL="https://github.com/Aaazlj/vpn-subscription-gateway.git"
 
 echo "=============================================="
 echo " VPN Subscription Gateway Installer"
@@ -17,7 +19,7 @@ echo "=============================================="
 # 1. system deps
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get install -y -q openvpn iproute2 iptables curl python3 ca-certificates || {
+apt-get install -y -q openvpn iproute2 iptables curl python3 ca-certificates git || {
   echo "安装依赖失败,请检查网络或 apt 源"; exit 1;
 }
 
@@ -27,10 +29,16 @@ if [ ! -e /dev/net/tun ]; then
   mknod /dev/net/tun c 10 200 2>/dev/null || echo "警告: /dev/net/tun 创建失败,请确认已启用 TUN"
 fi
 
-# 3. copy code
+# 3. fetch code (always fresh clone into temp then move)
+TMP_DIR=$(mktemp -d)
+echo "[1/3] 拉取代码: $REPO_URL"
+git clone --depth 1 "$REPO_URL" "$TMP_DIR/vsg" 2>/dev/null || {
+  echo "git clone 失败,请检查网络或仓库地址"; rm -rf "$TMP_DIR"; exit 1;
+}
 mkdir -p "$APP_DIR" "$DATA_DIR"
 rm -rf "$APP_DIR/app"
-cp -r "$(dirname "$0")/app" "$APP_DIR/app"
+cp -r "$TMP_DIR/vsg/app" "$APP_DIR/app"
+rm -rf "$TMP_DIR"
 chmod -R 755 "$APP_DIR"
 
 # 4. config defaults
@@ -69,6 +77,9 @@ UNIT
 systemctl daemon-reload
 systemctl enable vsg
 systemctl restart vsg
+
+sleep 3
+systemctl status vsg --no-pager | head -8
 
 echo ""
 echo "部署完成!"
