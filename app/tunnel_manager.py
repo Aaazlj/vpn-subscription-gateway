@@ -59,13 +59,16 @@ def write_openvpn_config(node: dict, index: int) -> Path:
             continue
         cleaned.append(ln)
     dev = config.TUN_PREFIX + str(index)
+    # VPNGate 公共认证账号
+    auth_file = cfg_dir / ("auth_" + str(index) + ".txt")
+    auth_file.write_text("vpn\nvpn\n", encoding="utf-8")
     lines = [
         "client",
         "dev " + dev,
         "dev-type tun",
         "persist-tun",
         "auth-nocache",
-        "auth-user-pass /dev/null",
+        "auth-user-pass " + str(auth_file),
         "script-security 2",
         "route-nopull",
         "verb 3",
