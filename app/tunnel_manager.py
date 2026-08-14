@@ -80,19 +80,50 @@ def write_openvpn_config(node: dict, index: int) -> Path:
 
 
 def setup_policy_routing(tun: str, table: int) -> tuple:
+    """为隧道建立出站路由:只有从 tun 接口离开的包查该表,不影响 SSH 等本机流量。
+
+    关键:用 'oif tunN' 而非 'from all',避免劫持服务器全部流量导致 SSH 断连。
+    """
     if not _check_iproute():
         return False, "iproute2 not installed"
+    # 清理该表残留
     _sh("ip route flush table " + str(table))
     rc, out = _sh("ip route add default dev " + tun + " table " + str(table))
     if rc != 0:
         return False, out
-    _sh("ip rule add from all lookup " + str(table) + " pref " + str(table))
+    # oif: 仅匹配从 tun 出口转发的包(代理 socket 已 SO_BINDTODEVICE 绑定 tun)
+    _sh("ip rule add oif " + tun + " table " + str(table) + " pref " + str(table))
+    # rp_filter 宽松模式,防止回包被丢弃
+    _sh("sysctl -w net.ipv4.conf.all.rp_filter=2 >/dev/null 2>&1")
+    _sh("sysctl -w net.ipv4.conf.default.rp_filter=2 >/dev/null 2>&1")
+    _sh("sysctl -w net.ipv4.conf." + tun + ".rp_filter=2 >/dev/null 2>&1")
+    # 校验规则确实生效
+    rc2, _ = _sh("ip rule show | grep -q 'oif " + tun + "'")
+    if rc2 != 0:
+        return False, "oif rule not applied for " + tun
     return True, ""
 
 
 def cleanup_policy_routing(tun: str, table: int) -> None:
-    _sh("ip rule del pref " + str(table) + " 2>/dev/null")
+    _sh("ip rule del oif " + tun + " 2>/dev/null")
+    _sh("ip rule del table " + str(table) + " 2>/dev/null")
     _sh("ip route flush table " + str(table) + " 2>/dev/null")
+
+
+def kill_residual_tunnels() -> None:
+    """启动时清理:任何残留的 vsg openvpn 进程与错误策略路由。"""
+    # 杀掉残留 openvpn(仅匹配我们的配置目录,避免误杀系统 vpn)
+    try:
+        subprocess.run(
+            ["pkill", "-f", "node_.*.ovpn"], capture_output=True, timeout=3
+        )
+    except Exception:
+        pass
+    # 清理可能存在的 'from all lookup 1xx' 错误规则(旧版本 bug 遗留)
+    for table in range(config.ROUTE_TABLE_BASE, config.ROUTE_TABLE_BASE + 32):
+        _sh("ip rule del pref " + str(table) + " 2>/dev/null")
+        _sh("ip rule del table " + str(table) + " 2>/dev/null")
+        _sh("ip route flush table " + str(table) + " 2>/dev/null")
 
 
 class Tunnel:
