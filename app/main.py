@@ -163,6 +163,14 @@ class App:
 
     # ---- lifecycle ----
 
+    def _boot(self):
+        """后台初始化:拉节点 -> 建隧道。"""
+        try:
+            self.refresh_nodes(force=True)
+            self.apply_selection()
+        except Exception as e:
+            print("[boot] init error: " + str(e), flush=True)
+
     def _maintainer(self):
         """后台循环:定时刷新节点并同步隧道/代理。"""
         while self.running:
@@ -174,8 +182,8 @@ class App:
                 print("[maintain] error: " + str(e), flush=True)
 
     def start(self):
-        self.refresh_nodes(force=True)
-        self.apply_selection()
+        # Web 服务立即可用;节点拉取与隧道同步放后台,避免冷启动等待
+        threading.Thread(target=self._boot, daemon=True).start()
         self.tunnel_mgr.start_health_checker()
         threading.Thread(target=self._maintainer, daemon=True).start()
 

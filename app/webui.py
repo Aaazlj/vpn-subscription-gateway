@@ -165,6 +165,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             app = self.app
             app.refresh_nodes(force=True)
+            try:
+                app.apply_selection()
+            except Exception as e:
+                print("[webui] apply_selection after refresh error: " + str(e), flush=True)
             self._json({"ok": True, "total": len(app.get_nodes())})
         elif path == "/api/select":
             if not self._require_web():
@@ -182,6 +186,11 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json({"error": "node_id or country required"}, 400)
                 return
+            # 选择变更后立即重建隧道与代理
+            try:
+                app.apply_selection()
+            except Exception as e:
+                print("[webui] apply_selection error: " + str(e), flush=True)
             self._json({"ok": True, "selected": config.load_selected()})
         elif path == "/api/config":
             if not self._require_web():
