@@ -59,8 +59,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             pass
 
-    def _json(self, data, status: int = 200):
-        self._send(json.dumps(data, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+    def _json(self, data, status: int = 200, extra: dict | None = None):
+        self._send(json.dumps(data, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status, extra)
 
     def _text(self, s, ctype="text/plain; charset=utf-8", status: int = 200, extra=None):
         self._send(s.encode("utf-8"), ctype, status, extra)
@@ -102,7 +102,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _require_web(self) -> bool:
         if not self._auth_ok():
-            self._json({"error": "unauthorized"}, 401)
+            self._json({"error": "unauthorized"}, 401,
+                       extra={"WWW-Authenticate": 'Basic realm="VPN-Gateway"',
+                              'Cache-Control': 'no-store'})
             return False
         return True
 
