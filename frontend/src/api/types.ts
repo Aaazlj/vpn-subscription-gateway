@@ -19,9 +19,12 @@ export interface VpnNode {
   openvpn_config: string
 }
 
-export interface CountriesResponse {
-  [country: string]: number
+export interface CountryEntry {
+  code: string
+  count: number
 }
+
+export type CountriesResponse = CountryEntry[]
 
 export interface TunnelInfo {
   index: number

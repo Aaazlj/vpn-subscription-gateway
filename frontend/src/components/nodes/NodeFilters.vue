@@ -15,10 +15,10 @@ const emit = defineEmits<{
   'update:onlyReachable': [value: boolean]
 }>()
 
-const countries = useCountriesStore()
+const countriesStore = useCountriesStore()
 
 const countryOptions = computed(() =>
-  Object.entries(countries.countries)
+  Object.entries(countriesStore.list)
     .map(([code, count]) => ({ code, count }))
     .sort((a, b) => b.count - a.count),
 )

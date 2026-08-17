@@ -1,7 +1,7 @@
 import { shallowRef, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api/client'
-import type { VpnNode, CountriesResponse } from '@/api/types'
+import type { VpnNode, CountryEntry } from '@/api/types'
 
 export const useNodesStore = defineStore('nodes', () => {
   const nodes = shallowRef<VpnNode[]>([])
@@ -34,14 +34,14 @@ export const useNodesStore = defineStore('nodes', () => {
 })
 
 export const useCountriesStore = defineStore('countries', () => {
-  const countries = shallowRef<CountriesResponse>({})
+  const list = shallowRef<CountryEntry[]>([])
   let loaded = false
 
   async function load(force = false) {
     if (loaded && !force) return
-    countries.value = await api.getCountries()
+    list.value = await api.getCountries()
     loaded = true
   }
 
-  return { countries, load }
+  return { list, load }
 })
