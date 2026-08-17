@@ -2,11 +2,33 @@
 """Web UI + REST API for the gateway."""
 from __future__ import annotations
 import json
+import os
 import time
 import urllib.parse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from . import config, subscriber
+
+# SPA 静态资源目录(frontend/dist),由 install.sh 在服务器上构建
+STATIC_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+_MIME = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".ico": "image/x-icon",
+    ".json": "application/json; charset=utf-8",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".map": "application/json",
+}
+
+
+def _static_type(name: str) -> str:
+    return _MIME.get(Path(name).suffix.lower(), "application/octet-stream")
 
 
 def public_ip() -> str:
@@ -108,6 +130,35 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    # ---------------- static SPA ----------------
+
+    def _serve_static(self, path: str) -> bool:
+        """Serve a file from the SPA dist dir. Returns True if served."""
+        # normalize and prevent path traversal
+        rel = path.lstrip("/")
+        if rel in ("", "index.html"):
+            return self._serve_index()
+        full = (STATIC_DIR / rel).resolve()
+        if not str(full).startswith(str(STATIC_DIR.resolve())) or not full.is_file():
+            return False
+        try:
+            body = full.read_bytes()
+        except OSError:
+            return False
+        self._send(body, _static_type(rel))
+        return True
+
+    def _serve_index(self) -> bool:
+        index = STATIC_DIR / "index.html"
+        if not index.is_file():
+            return False
+        try:
+            body = index.read_bytes()
+        except OSError:
+            return False
+        self._send(body, "text/html; charset=utf-8")
+        return True
+
     # ---------------- routes ----------------
 
     def do_GET(self):
@@ -118,7 +169,14 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             if not self._require_web():
                 return
-            self._html(self.app.render_index())
+            # 优先返回 SPA 静态首页, 若 dist 不存在则回退到旧版 HTML
+            if not self._serve_index():
+                self._html(self.app.render_index())
+        elif path == "/api/logs":
+            if not self._require_web():
+                return
+            from . import log_buffer
+            self._json(log_buffer.snapshot(300))
         elif path == "/api/nodes":
             if not self._require_web():
                 return
@@ -154,6 +212,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(app.public_config())
         elif path.startswith("/sub/"):
             self._serve_subscription(path)
+        elif self._serve_static(path):
+            pass  # served as static file
         else:
             self._json({"error": "not found"}, 404)
 

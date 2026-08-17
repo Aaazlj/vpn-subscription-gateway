@@ -19,7 +19,7 @@ echo "=============================================="
 # 1. system deps
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get install -y -q openvpn iproute2 iptables curl python3 ca-certificates git || {
+apt-get install -y -q openvpn iproute2 iptables curl python3 ca-certificates git nodejs npm || {
   echo "安装依赖失败,请检查网络或 apt 源"; exit 1;
 }
 
@@ -31,15 +31,22 @@ fi
 
 # 3. fetch code (always fresh clone into temp then move)
 TMP_DIR=$(mktemp -d)
-echo "[1/3] 拉取代码: $REPO_URL"
+echo "[1/4] 拉取代码: $REPO_URL"
 git clone --depth 1 "$REPO_URL" "$TMP_DIR/vsg" 2>/dev/null || {
   echo "git clone 失败,请检查网络或仓库地址"; rm -rf "$TMP_DIR"; exit 1;
 }
 mkdir -p "$APP_DIR" "$DATA_DIR"
-rm -rf "$APP_DIR/app"
+rm -rf "$APP_DIR/app" "$APP_DIR/frontend"
 cp -r "$TMP_DIR/vsg/app" "$APP_DIR/app"
+cp -r "$TMP_DIR/vsg/frontend" "$APP_DIR/frontend"
 rm -rf "$TMP_DIR"
 chmod -R 755 "$APP_DIR"
+
+echo "[2/3] 构建前端..."
+cd "$APP_DIR/frontend"
+npm install --cache /tmp/npm-cache 2>&1 | tail -3
+npx vite build 2>&1 | tail -5
+echo "前端构建完成。"
 
 # 4. config defaults
 cat > /etc/default/vsg <<'ENVF'

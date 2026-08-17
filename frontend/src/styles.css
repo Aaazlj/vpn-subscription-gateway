@@ -1,0 +1,75 @@
+:root {
+  --bg: #0f1419;
+  --panel: #161c24;
+  --panel-2: #1c2430;
+  --border: #2a3442;
+  --text: #e6edf3;
+  --text-dim: #8b98a9;
+  --accent: #409eff;
+  --ok: #67c23a;
+  --warn: #e6a23c;
+  --bad: #f56c6c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+.mono {
+  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+.page {
+  padding: 20px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* dark-ish theme overrides for element-plus */
+:root {
+  --el-color-primary: #409eff;
+  --el-bg-color: var(--panel);
+  --el-bg-color-overlay: var(--panel-2);
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--text-dim);
+  --el-border-color: var(--border);
+  --el-fill-color-blank: var(--panel);
+  --el-fill-color-light: var(--panel-2);
+}

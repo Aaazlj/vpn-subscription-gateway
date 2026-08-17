@@ -184,6 +184,9 @@ class App:
                 print("[maintain] error: " + str(e), flush=True)
 
     def start(self):
+        # 日志缓冲:将 stdout/stderr 同时写入前端可读的 ring buffer
+        from . import log_buffer
+        log_buffer.attach()
         # Web 服务立即可用;节点拉取与隧道同步放后台,避免冷启动等待
         threading.Thread(target=self._boot, daemon=True).start()
         self.tunnel_mgr.start_health_checker()
