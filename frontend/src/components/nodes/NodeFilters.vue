@@ -18,8 +18,8 @@ const emit = defineEmits<{
 const countriesStore = useCountriesStore()
 
 const countryOptions = computed(() =>
-  Object.entries(countriesStore.list)
-    .map(([code, count]) => ({ code, count }))
+  countriesStore.list
+    .map((entry) => ({ code: entry.code, count: entry.count }))
     .sort((a, b) => b.count - a.count),
 )
 

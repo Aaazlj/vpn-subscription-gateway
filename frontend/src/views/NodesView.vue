@@ -96,10 +96,10 @@ onMounted(loadNodes)
         <span class="auto-label">自动挑选:</span>
         <el-select v-model="autoCountry" placeholder="选择国家" filterable class="auto-country">
           <el-option
-            v-for="(count, code) in countries.list"
-            :key="code"
-            :label="code + ' (' + count + ')'"
-            :value="code"
+            v-for="item in countries.list"
+            :key="item.code"
+            :label="item.code + ' (' + item.count + ')'"
+            :value="item.code"
           />
         </el-select>
         <el-select v-model="autoLimit" class="auto-limit">
