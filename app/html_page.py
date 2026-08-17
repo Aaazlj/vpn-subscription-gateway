@@ -187,12 +187,17 @@ function renderNodes(){
       '<td>'+lat+'</td>'+
       '<td>'+esc(n.score)+'</td>'+
       '<td>'+esc(n.users||'')+'</td>'+
-      '<td><button class="'+(sel?'sel':'')+'" onclick="toggleSel(\''+esc(n.id).replace(/'/g,"\\'")+'\')">'+(sel?'✓ 已选':'选择')+'</button></td>';
+      '<td><button class="'+(sel?'sel':'')+'" data-id="'+esc(n.id)+'" data-action="toggle">'+(sel?'✓ 已选':'选择')+'</button></td>';
     tb.appendChild(tr);
   });
 }
 
 function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+
+document.addEventListener('click', function(e){
+  var btn = e.target.closest ? e.target.closest('[data-action="toggle"]') : null;
+  if (btn) toggleSel(btn.getAttribute('data-id'));
+});
 
 async function toggleSel(id){
   try {
@@ -233,7 +238,7 @@ function renderSelected(data){
     const name = n ? (flag(n.country_short)+' '+n.country_short+' '+(n.hostname||'')) : id;
     const alive = aliveSet.has(id);
     return '<div class="tunnel"><span>'+(alive?'<span class="pill badge ok">UP</span>':'<span class="pill badge bad">DOWN</span>')+' '+esc(name)+'</span>'+
-      '<button onclick="toggleSel(\''+esc(id).replace(/'/g,"\\'")+'\')">移除</button></div>';
+      '<button data-id="'+esc(id)+'" data-action="toggle">移除</button></div>';
   }).join('');
 }
 
@@ -257,7 +262,7 @@ function renderSub(){
     if (!n) return;
     lines.push('socks5://USER:PASS@'+server+':PORT  # '+flag(n.country_short)+' '+n.hostname);
   });
-  box.textContent = lines.length ? lines.join('\n') : '选择节点后生成订阅';
+  box.textContent = lines.length ? lines.join(String.fromCharCode(10)) : '选择节点后生成订阅';
 }
 
 function subUrl(fmt){
