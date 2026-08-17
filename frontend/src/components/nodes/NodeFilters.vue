@@ -23,7 +23,8 @@ const countryOptions = computed(() =>
     .sort((a, b) => b.count - a.count),
 )
 
-function onKeyword(v: string) {
+function onKeyword(v: string | undefined | null) {
+  emit("update:keyword", v || "")
   emit('update:keyword', v)
 }
 function onCountry(v: string) {

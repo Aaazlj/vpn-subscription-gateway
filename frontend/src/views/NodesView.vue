@@ -21,7 +21,7 @@ const autoCountry = shallowRef('')
 const autoLimit = shallowRef(3)
 
 const filtered = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
+  const kw = (keyword.value || "").trim().toLowerCase()
   const cc = country.value.toUpperCase()
   const reach = onlyReachable.value
   return nodesStore.nodes.filter((n) => {

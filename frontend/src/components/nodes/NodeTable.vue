@@ -40,7 +40,7 @@ async function onToggle(node: VpnNode) {
   <el-table
     v-loading="props.loading"
     :data="props.nodes"
-    stripe
+
     height="100%"
     empty-text="暂无节点,点击右上角「拉取节点」"
   >
