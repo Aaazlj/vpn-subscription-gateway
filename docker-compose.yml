@@ -1,8 +1,7 @@
-version: "3.9"
-
 services:
   vpn-gateway:
     build: .
+    image: vpn-subscription-gateway:latest
     container_name: vpn-subscription-gateway
     restart: unless-stopped
     privileged: true
@@ -11,10 +10,9 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-      - SYS_MODULE
     ports:
-      - "8787:8787"          # Web UI
-      - "10000-10007:10000-10007"  # proxy ports per tunnel
+      - "8787:8787"
+      - "10000-10007:10000-10007"
     environment:
       - VSG_WEB_PORT=8787
       - VSG_PROXY_HOST=0.0.0.0
@@ -25,10 +23,9 @@ services:
       - VSG_WEB_USER=admin
       - VSG_WEB_PASS=admin123
       # - VSG_SUB_TOKEN=change-me-token
-      # - VSG_SERVER_HOST=1.2.3.4   # 公网 IP,留空自动探测
+      # - VSG_SERVER_HOST=1.2.3.4
     volumes:
       - vsg-data:/data
 
 volumes:
   vsg-data:
-
