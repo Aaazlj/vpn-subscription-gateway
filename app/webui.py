@@ -209,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/config":
             if not self._require_web():
                 return
-            self._json(app.public_config())
+            self._json(self.app.public_config())
         elif path.startswith("/sub/"):
             self._serve_subscription(path)
         elif self._serve_static(path):
