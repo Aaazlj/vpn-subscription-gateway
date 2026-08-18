@@ -5,15 +5,46 @@ import type {
 } from './types'
 
 const BASE = ''
+const TOKEN_KEY = 'vsg_token'
+const USER_KEY = 'vsg_user'
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string, username: string) {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(USER_KEY, username)
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
+export function isLoggedIn(): boolean {
+  return !!localStorage.getItem(TOKEN_KEY)
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token
+  }
   const res = await fetch(BASE + path, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
+      ...headers,
+      ...(init?.headers as Record<string, string> ?? {}),
     },
   })
+  if (res.status === 401) {
+    clearToken()
+    throw new Error('未登录或登录已过期')
+  }
   if (!res.ok) {
     let msg = 'HTTP ' + res.status
     try {
@@ -28,6 +59,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  login(username: string, password: string): Promise<{ ok: boolean; token: string; username: string }> {
+    return request<{ ok: boolean; token: string; username: string }>('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    })
+  },
+
   getNodes(params?: { country?: string; reachable?: boolean }): Promise<NodesResponse> {
     const q = new URLSearchParams()
     if (params?.country) q.set('country', params.country)

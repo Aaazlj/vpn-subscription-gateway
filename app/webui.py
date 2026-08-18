@@ -98,23 +98,56 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _make_token(self, user: str) -> str:
+        import hmac, hashlib, time
+        ts = str(int(time.time()))
+        payload = user + ":" + ts
+        secret = (self.app.web_pass if self.app else "vsg") + ":vsg-secret"
+        sig = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()[:32]
+        return payload + ":" + sig
+
+    def _verify_token(self, token: str) -> bool:
+        import hmac, hashlib, time
+        app = self.app
+        if app is None or not app.web_user:
+            return True
+        try:
+            parts = token.split(":")
+            if len(parts) != 3:
+                return False
+            user, ts_str, sig = parts
+            ts = int(ts_str)
+            # token 有效期 7 天
+            if abs(time.time() - ts) > 7 * 86400:
+                return False
+            secret = (app.web_pass if app else "vsg") + ":vsg-secret"
+            expected = hmac.new(secret.encode(), (user + ":" + ts_str).encode(), hashlib.sha256).hexdigest()[:32]
+            if not hmac.compare_digest(sig, expected):
+                return False
+            return hmac.compare_digest(user, app.web_user)
+        except Exception:
+            return False
+
     def _auth_ok(self) -> bool:
         app = self.app
         if app is None:
             return True
         if not app.web_user:
             return True
-        import base64
         auth = self.headers.get("Authorization", "")
-        if not auth.startswith("Basic "):
-            return False
-        try:
-            decoded = base64.b64decode(auth[6:]).decode("utf-8")
-            user, _, pw = decoded.partition(":")
-            import hmac
-            return hmac.compare_digest(user, app.web_user) and hmac.compare_digest(pw, app.web_pass)
-        except Exception:
-            return False
+        # 优先 Bearer token
+        if auth.startswith("Bearer "):
+            return self._verify_token(auth[7:])
+        # 兼容旧 Basic Auth (subscription 客户端等)
+        if auth.startswith("Basic "):
+            import base64, hmac
+            try:
+                decoded = base64.b64decode(auth[6:]).decode("utf-8")
+                user, _, pw = decoded.partition(":")
+                return hmac.compare_digest(user, app.web_user) and hmac.compare_digest(pw, app.web_pass)
+            except Exception:
+                return False
+        return False
 
     def _token_ok(self) -> bool:
         app = self.app
@@ -125,8 +158,7 @@ class Handler(BaseHTTPRequestHandler):
     def _require_web(self) -> bool:
         if not self._auth_ok():
             self._json({"error": "unauthorized"}, 401,
-                       extra={"WWW-Authenticate": 'Basic realm="VPN-Gateway"',
-                              'Cache-Control': 'no-store'})
+                       extra={"Cache-Control": "no-store"})
             return False
         return True
 
@@ -222,7 +254,19 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
 
-        if path == "/api/refresh":
+        if path == "/api/login":
+            data = self._read_json_body()
+            user = data.get("username", "")
+            pw = data.get("password", "")
+            import hmac
+            app = self.app
+            if app and hmac.compare_digest(user, app.web_user) and hmac.compare_digest(pw, app.web_pass):
+                token = self._make_token(user)
+                self._json({"ok": True, "token": token, "username": user})
+            else:
+                self._json({"error": "用户名或密码错误"}, 401)
+            return
+        elif path == "/api/refresh":
             if not self._require_web():
                 return
             app = self.app
