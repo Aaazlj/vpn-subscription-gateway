@@ -199,9 +199,7 @@ class Handler(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(parsed.query)
 
         if path == "/":
-            if not self._require_web():
-                return
-            # 优先返回 SPA 静态首页, 若 dist 不存在则回退到旧版 HTML
+            # SPA 入口: 始终返回 index.html, 前端路由处理登录跳转
             if not self._serve_index():
                 self._html(self.app.render_index())
         elif path == "/api/logs":
