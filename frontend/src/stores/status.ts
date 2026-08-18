@@ -52,7 +52,7 @@ export const useStatusStore = defineStore('status', () => {
     polling.value = false
   }
 
-  async function toggleNode(nodeId: string) {
+  async function toggleNode(nodeId: string, action: 'add' | 'remove' | 'toggle' = 'toggle') {
     const res = await api.selectNode(nodeId, 'toggle')
     selected.value = res.selected
     return res

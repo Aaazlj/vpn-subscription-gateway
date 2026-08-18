@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { VpnNode } from '@/api/types'
 import { useStatusStore } from '@/stores/status'
@@ -10,8 +10,20 @@ const props = defineProps<{
 }>()
 
 const status = useStatusStore()
+const emit = defineEmits<{
+  'selection-change': [rows: VpnNode[]]
+}>()
 
+const tableRef = shallowRef<any>(null)
 const selectedSet = computed(() => new Set(status.selected))
+
+function onSelectionChange(rows: VpnNode[]) {
+  emit('selection-change', rows)
+}
+
+function clearSelection() {
+  tableRef.value?.clearSelection()
+}
 
 function countryFlag(code: string): string {
   if (!code) return ''
@@ -34,16 +46,20 @@ async function onToggle(node: VpnNode) {
     ElMessage.error(String((e as Error).message ?? e))
   }
 }
+
+defineExpose({ clearSelection })
 </script>
 
 <template>
   <el-table
+    ref="tableRef"
     v-loading="props.loading"
     :data="props.nodes"
-
     height="100%"
     empty-text="暂无节点,点击右上角「拉取节点」"
+    @selection-change="onSelectionChange"
   >
+    <el-table-column type="selection" width="40" />
     <el-table-column label="国家" width="90">
       <template #default="{ row }">
         <span>{{ countryFlag(row.country_short) }} {{ row.country_short }}</span>
@@ -69,6 +85,17 @@ async function onToggle(node: VpnNode) {
     <el-table-column prop="score" label="评分" width="110" sortable />
     <el-table-column label="当前在线" width="100" sortable :sort-method="(a: VpnNode, b: VpnNode) => Number(a.sessions) - Number(b.sessions)">
       <template #default="{ row }">{{ row.sessions || '—' }}</template>
+    </el-table-column>
+    <el-table-column label="IP 类型" width="120">
+      <template #default="{ row }">
+        <el-tag
+          :type="row.ip_type === '机房' ? 'danger' : row.ip_type === '教育网/住宅' ? 'success' : 'info'"
+          size="small"
+          disable-transitions
+        >
+          {{ row.ip_type }}
+        </el-tag>
+      </template>
     </el-table-column>
     <el-table-column label="状态" width="90">
       <template #default="{ row }">

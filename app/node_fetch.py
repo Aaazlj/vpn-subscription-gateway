@@ -56,6 +56,20 @@ def parse_vpngate(text: str) -> list:
         except Exception:
             node["openvpn_config"] = ""
         node["id"] = node["ip"] + ":" + hostname
+        # 推断 IP 类型
+        ip = node["ip"]
+        op = node.get("operator", "").lower()
+        msg = node.get("message", "").lower()
+        if ip.startswith("219.100.37."):
+            node["ip_type"] = "教育网/住宅"
+        elif "academic" in op or "university" in op or "campus" in op or "college" in op:
+            node["ip_type"] = "教育网/住宅"
+        elif "datacenter" in op or "hosting" in op or "asn" in op:
+            node["ip_type"] = "机房"
+        elif "academic" in msg or "aiyuu" in msg:
+            node["ip_type"] = "教育网/住宅"
+        else:
+            node["ip_type"] = "未知"
         nodes.append(node)
     return nodes
 

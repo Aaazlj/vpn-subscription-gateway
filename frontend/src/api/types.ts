@@ -16,6 +16,7 @@ export interface VpnNode {
   lng: number
   latency_ms: number | null
   reachable: boolean
+  ip_type: string
   openvpn_config: string
 }
 

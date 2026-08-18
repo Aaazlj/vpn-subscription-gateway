@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { shallowRef, computed, onMounted, watch } from 'vue'
+import { shallowRef, ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { RefreshRight, Download, Cpu } from '@element-plus/icons-vue'
 import NodeTable from '@/components/nodes/NodeTable.vue'
 import NodeFilters from '@/components/nodes/NodeFilters.vue'
 import { useNodesStore, useCountriesStore } from '@/stores/nodes'
+import type { VpnNode } from '@/api/types'
 import { useStatusStore } from '@/stores/status'
 
 const nodesStore = useNodesStore()
@@ -64,6 +65,29 @@ async function onAutoSelect() {
   }
 }
 
+const nodeTableRef = ref<InstanceType<typeof NodeTable> | null>(null)
+const selectedRows = ref<VpnNode[]>([])
+
+function onSelectionChange(rows: VpnNode[]) {
+  selectedRows.value = rows
+}
+
+async function batchSelect(action: 'add' | 'remove') {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先勾选节点')
+    return
+  }
+  for (const n of selectedRows.value) {
+    try {
+      await status.toggleNode(n.id, action)
+    } catch (e) {
+      ElMessage.error(n.label + ': ' + String((e as Error).message ?? e))
+    }
+  }
+  ElMessage.success((action === 'add' ? '已批量加入 ' : '已批量取消 ') + selectedRows.value.length + ' 个节点')
+  nodeTableRef.value?.clearSelection()
+}
+
 watch([keyword, country, onlyReachable], () => {
   page.value = 1
 })
@@ -110,7 +134,12 @@ onMounted(loadNodes)
     </div>
 
     <div class="card table-card">
-      <NodeTable :nodes="paged" :loading="nodesStore.loading" />
+      <div class="batch-bar">
+        <span class="batch-info">已选 {{ selectedRows.length }} 个节点</span>
+        <el-button size="small" type="success" @click="batchSelect('add')">批量加入</el-button>
+        <el-button size="small" type="danger" @click="batchSelect('remove')">批量取消</el-button>
+      </div>
+      <NodeTable ref="nodeTableRef" :nodes="paged" :loading="nodesStore.loading" @selection-change="onSelectionChange" />
       <div class="pager">
         <el-pagination
           v-model:current-page="page"
@@ -152,5 +181,15 @@ onMounted(loadNodes)
 .pager {
   display: flex;
   justify-content: flex-end;
+}
+.batch-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 8px;
+}
+.batch-info {
+  color: var(--text-dim);
+  font-size: 13px;
 }
 </style>

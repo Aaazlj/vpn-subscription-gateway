@@ -52,7 +52,7 @@ export const api = {
     return request<{ ok: boolean; total: number }>('/api/refresh', { method: 'POST' })
   },
 
-  selectNode(nodeId: string, action = 'toggle'): Promise<{ ok: boolean; selected: string[] }> {
+  selectNode(nodeId: string, action: 'add' | 'remove' | 'toggle' = 'toggle'): Promise<{ ok: boolean; selected: string[] }> {
     return request<{ ok: boolean; selected: string[] }>('/api/select', {
       method: 'POST',
       body: JSON.stringify({ node_id: nodeId, action }),
